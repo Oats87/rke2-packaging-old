@@ -1,0 +1,30 @@
+#!/bin/bash
+set -e -x
+
+cd $(dirname $0)/..
+. ./scripts/version
+
+RPMARCH="x86_64"
+SRC_PATH="/root/rpmbuild/SOURCES/${RPMARCH}"
+mkdir -p ${SRC_PATH}
+
+cp -r /root/rpmbuild/SPECS/* ${SRC_PATH}
+
+#sed -i "s/\%global ARCH.*/\%global ARCH ${GOARCH}/" ${SRC_PATH}/rke2-common.spec
+
+cd ${SRC_PATH}
+
+spectool -gf rke2-common.spec \
+    --define "rke2_version ${RKE2_VERSION}" \
+    --define "ARCH amd64"
+
+rpmbuild -vv \
+    --define "rpm_version ${RPM_VERSION}" \
+    --define "rke2_version ${RKE2_VERSION}" \
+    --define "rpm_release ${RPM_RELEASE}" \
+    --define "rke2_policyver ${RKE2_POLICYVER}" \
+    --define "_sourcedir ${SRC_PATH}" \
+    --target ${RPMARCH} \
+    -bb ${SRC_PATH}/rke2-common.spec
+
+#createrepo -o /root/rpmbuild/RPMS/${RPMARCH}/ /root/rpmbuild/RPMS/${RPMARCH}

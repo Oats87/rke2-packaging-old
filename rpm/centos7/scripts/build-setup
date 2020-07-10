@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e -x
+
+yum install -y yum-utils rpm-build spectool createrepo
+yum-builddep -y container-selinux
+

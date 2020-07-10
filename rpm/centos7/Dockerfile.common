@@ -1,0 +1,17 @@
+FROM centos:7 as build
+RUN mkdir -p /root/rpmbuild/SPECS
+COPY common/rke2-common.spec /root/rpmbuild/SPECS/rke2-common.spec
+
+COPY scripts scripts
+RUN scripts/build-setup
+
+ARG TAG
+ENV TAG $TAG
+
+ARG COMMIT
+ENV COMMIT $COMMIT
+
+RUN scripts/build-common
+
+FROM scratch
+COPY --from=build /root/rpmbuild/RPMS/x86_64 /x86_64/
