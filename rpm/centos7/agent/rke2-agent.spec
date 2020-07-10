@@ -1,5 +1,3 @@
-%global ARCH amd64
-
 Name:    rke2-agent
 Version: %{rpm_version}
 Release: %{rpm_release}%{?dist}

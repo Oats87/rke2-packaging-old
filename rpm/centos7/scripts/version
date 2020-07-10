@@ -1,18 +1,20 @@
 #!/bin/bash
 
+RKE2_POLICYVER=0.1-1
+
 TREE_STATE=clean
 COMMIT=${COMMIT:-${DRONE_COMMIT:-${GITHUB_SHA:-unknown}}}
-if [[ "$GITHUB_REF" = refs/tags/* ]]; then
-    GITHUB_TAG=${GITHUB_REF#refs/tags/}
-fi
 TAG=${TAG:-${DRONE_TAG:-$GITHUB_TAG}}
 
-if [ -d .git ]; then
+# If we're in a dapperized environment, we should be able to figure out what our current tag and commit are. 
+
+if [ -d ${DAPPER_SOURCE}/.git ]; then
+    pushd ${DAPPER_SOURCE}
     if [ -z "$TAG" ]; then
         TAG=$(git tag -l --contains HEAD | head -n 1)
     fi
     if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
-        DIRTY="-dirty"
+        DIRTY="dirty"
         TREE_STATE=dirty
     fi
 
@@ -20,18 +22,33 @@ if [ -d .git ]; then
     if [ -z "$COMMIT" ]; then
         COMMIT=$(git rev-parse HEAD || true)
     fi
+    popd
 fi
 
 if [[ -n "$TAG" ]]; then
-    VERSION=$TAG
-else
-    VERSION="0+dev-${COMMIT:0:8}${DIRTY}"
+    if [[ "$TREE_STATE" = "clean" ]]; then
+        VERSION=$TAG
+    fi
 fi
 
-rpm_version_regex='s/^v?([^-+]*).*$/\1/;'
-rpm_release_regex='s/\+rke2/+/; s/\+/-/g; s/^[^-]*//; s/^--/dev-/; s/-+/./g; s/^\.+//; s/\.+$//; s/^$/1/;'
-RKE2_VERSION=$VERSION
-RPM_VERSION=$(sed -E -e "$rpm_version_regex" <<<"$VERSION")
-RPM_RELEASE=$(sed -E -e "$rpm_release_regex" <<<"$VERSION")
+if [[ -z "$VERSION" ]]; then
+    VERSION=$(curl -s https://api.github.com/repos/rancher/rke2/releases | jq -r .[0].tag_name)
+    RKE2_VERSION=$VERSION
 
-RKE2_POLICYVER='0.1-1'
+    rke2_dirty_regex="s/\+rke2/-${COMMIT:0:8}${DIRTY}\+rke2/"
+    VERSION=$(sed -E -e "$rke2_dirty_regex" <<<"$VERSION")
+    else
+    rke2_version_regex='s/^(v?[^-+]*.*\+rke2).*$/\1/;' # will take v1.18.4-alpha9+rke2.0 and provide "1.18.4-alpha9+rke2"
+
+    RKE2_VERSION=$(sed -E -e "$rke2_version_regex" <<<"$VERSION")
+fi
+
+rke2_rpm_version_regex='s/\-/~/g; s/^v?([^-+]*.*)\+.*$/\1/;' # will take v1.18.4-alpha9+rke2.0 and provide "1.18.4~alpha9"
+rke2_rpm_release_regex='s/^.*\.([0-9]*)$/\1/;' # will take v1.18.4-alpha9+rke2.0 and provide "0"
+
+RPM_VERSION=$(sed -E -e "$rke2_rpm_version_regex" <<<"$VERSION")
+RPM_RELEASE=$(sed -E -e "$rke2_rpm_release_regex" <<<"$VERSION")
+
+if [[ -n "$RPM_RELEASE" ]]; then
+    RPM_RELEASE="0"
+fi

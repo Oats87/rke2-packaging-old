@@ -1,4 +1,4 @@
-%global ARCH amd64
+%global ARCH.placeholder
 
 Name:    rke2-common
 Version: %{rpm_version}
@@ -8,7 +8,7 @@ Summary: RKE2 Common Files
 Group:   System Environment/Base		
 License: ASL 2.0
 URL:     https://rancher.com
-Source0: https://github.com/rancher/rke2/releases/download/%{rke2_version}/rke2-%{rke2_version}.linux-%{ARCH}
+Source0: https://github.com/rancher/rke2/releases/download/%{rke2_version}/rke2.linux-%{ARCH}
 
 BuildRequires: systemd
 Requires(post): rke2-selinux >= %{rke2_policyver}

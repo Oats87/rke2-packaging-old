@@ -4,14 +4,17 @@ set -e -x
 cd $(dirname $0)/..
 . ./scripts/version
 
-RPMARCH="x86_64"
+IFS=- read RPMARCH GOARCH<<< ${COMBARCH}; unset IFS
+
+mkdir -p "/root/rpmbuild/SPECS"
+
 SRC_PATH="/root/rpmbuild/SOURCES/${RPMARCH}"
 mkdir -p ${SRC_PATH}
 
-cp -r /root/rpmbuild/SPECS/* ${SRC_PATH}
-cp -r /root/tmp/* ${SRC_PATH}
+HOME=/root
 
-ls -l ${SRC_PATH}
+cp -r /source/rpm/centos7/agent/* ${SRC_PATH}
+cp -r /source/rpm/centos7/agent/rke2-agent.spec /root/rpmbuild/SPECS
 
 cd ${SRC_PATH}
 
@@ -23,4 +26,5 @@ rpmbuild \
     --target ${RPMARCH} \
     -bb ${SRC_PATH}/rke2-agent.spec
 
-#createrepo -o /root/rpmbuild/RPMS/${RPMARCH}/ /root/rpmbuild/RPMS/${RPMARCH}
+mkdir -p /source/dist/centos7
+cp -r /root/rpmbuild/RPMS/* /source/dist/centos7
